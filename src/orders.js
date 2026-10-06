@@ -9,6 +9,10 @@ import { buildCarrierCsv, parseTrackingText } from './carriers.js';
 import { sendMail } from './mailer.js';
 import * as mails from './emails.js';
 
+// Stripe アカウントを他システム（らいすぴあポイント等）と共用しても混ざらないよう、
+// 翔米が作った決済にだけこの印を付け、Webhook では印のあるものしか扱わない。
+export const SHOP_TAG = 'shomai';
+
 export const TIME_SLOT_VALUES = { none: '指定なし', am: '午前中', t1416: '14-16時', t1618: '16-18時', t1820: '18-20時', t1921: '19-21時' };
 
 export class UserError extends Error {}
@@ -55,6 +59,8 @@ export async function startCheckout(rawItems) {
     const session = await createCheckoutSession({
       mode: 'payment',
       locale: 'ja',
+      metadata: { shop: SHOP_TAG },
+      payment_intent_data: { metadata: { shop: SHOP_TAG } },
       payment_method_types: config.stripe.paymentMethods,
       payment_method_options: config.stripe.paymentMethods.includes('konbini') ? { konbini: { expires_after_days: 3 } } : undefined,
       line_items: quote.items.map((i) => ({

@@ -66,6 +66,8 @@ async function handleStripeWebhook(req, res) {
     return send(res, 400, { error: e.message });
   }
   const obj = event.data?.object;
+  // 翔米以外（同じStripeアカウントの別システム）の決済は何もせず受け取りだけ返す
+  if (obj?.object === 'checkout.session' && obj.metadata?.shop !== orders.SHOP_TAG) return send(res, 200, { received: true, ignored: true });
   switch (event.type) {
     case 'checkout.session.completed':
     case 'checkout.session.async_payment_succeeded': {

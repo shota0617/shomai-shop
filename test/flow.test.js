@@ -113,6 +113,7 @@ test('Stripe Webhook：コンビニ払いは入金待ち → 入金で確定', a
   globalThis.fetch = async (u, init) => {
     const s = String(u);
     if (s === 'https://api.stripe.com/v1/checkout/sessions' && init.method === 'POST') {
+      assert.equal(new URLSearchParams(init.body).get('metadata[shop]'), 'shomai');
       return Response.json({ id: 'cs_test_konbini', url: 'https://checkout.stripe.com/c/pay/cs_test_konbini' });
     }
     if (s.startsWith('https://api.stripe.com/v1/checkout/sessions/cs_test_konbini')) {
@@ -123,23 +124,31 @@ test('Stripe Webhook：コンビニ払いは入金待ち → 入金で確定', a
         custom_fields: [],
       });
     }
+    if (s.startsWith('https://api.stripe.com')) throw new Error(`想定外のStripe呼び出し: ${s}`);
     return realFetch(u, init);
   };
   try {
     const { url } = await (await post('/api/checkout', { items: [{ productId: 'shomai-2kg', quantity: 1 }] })).json();
     assert.match(url, /checkout\.stripe\.com/);
 
-    const sendEvent = (type) => {
-      const body = JSON.stringify({ type, data: { object: { id: 'cs_test_konbini' } } });
+    const sendEvent = (type, id = 'cs_test_konbini', shop = 'shomai') => {
+      const body = JSON.stringify({ type, data: { object: { object: 'checkout.session', id, metadata: { shop } } } });
       const t = Math.floor(Date.now() / 1000);
       const sig = crypto.createHmac('sha256', 'whsec_x').update(`${t}.${body}`).digest('hex');
       return realFetch(`${base}/webhooks/stripe`, { method: 'POST', headers: { 'Stripe-Signature': `t=${t},v1=${sig}` }, body });
     };
     assert.equal((await realFetch(`${base}/webhooks/stripe`, { method: 'POST', headers: { 'Stripe-Signature': 't=1,v1=00' }, body: '{}' })).status, 400);
 
+    // 同じStripeアカウントの別システム（ポイント等）の決済は無視し、Stripeにも問い合わせない
+    const db = getDb();
+    const before = db.prepare('SELECT COUNT(*) AS n FROM orders').get().n;
+    const foreign = await sendEvent('checkout.session.completed', 'cs_points_system', null);
+    assert.equal(foreign.status, 200);
+    assert.equal((await foreign.json()).ignored, true);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n, before);
+
     clearMails();
     assert.equal((await sendEvent('checkout.session.completed')).status, 200);
-    const db = getDb();
     let order = db.prepare("SELECT * FROM orders WHERE session_id = 'cs_test_konbini'").get();
     assert.equal(order.status, 'awaiting_payment');
     assert.equal(order.address1, '東京都千代田区千代田1-1');
