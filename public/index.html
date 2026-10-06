@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>翔米 ｜ 精米したてのお米をご自宅へ</title>
+<meta name="description" content="翔米（しょうまい）公式オンラインショップ。精米したてのお米を、ご注文から最短当日発送でお届けします。"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{--ink:#2d2d1e;--gold:#c8a96e;--paper:#f5f2eb;--line:#e8e4d8;--muted:#6a6a54;--green:#5b8a6b;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans JP','Hiragino Sans',sans-serif;background:var(--paper);color:var(--ink);line-height:1.7;padding-bottom:110px;}
+button{font-family:inherit;cursor:pointer;}
+.hero{background:var(--ink);color:var(--paper);text-align:center;padding:56px 16px 48px;}
+.hero h1{font-family:'Noto Serif JP',serif;font-size:56px;font-weight:900;letter-spacing:.2em;line-height:1.1;}
+.hero .kana{color:var(--gold);font-size:11px;letter-spacing:.5em;margin-top:6px;}
+.hero p{margin-top:18px;font-size:15px;letter-spacing:.1em;}
+main{max-width:720px;margin:0 auto;padding:0 16px;}
+.points{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:-22px 0 28px;}
+.point{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;font-size:12px;}
+.point b{display:block;font-size:20px;}
+h2{font-family:'Noto Serif JP',serif;font-size:20px;margin:28px 0 12px;letter-spacing:.1em;}
+.products{display:grid;gap:12px;}
+.product{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;grid-template-columns:72px 1fr auto;gap:14px;align-items:center;}
+.bag{width:72px;height:72px;border-radius:12px;background:linear-gradient(160deg,#faf6ec,#efe6cf);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif JP',serif;font-weight:900;color:var(--ink);font-size:18px;border:1px solid var(--line);}
+.pname{font-weight:700;font-size:16px;}
+.pdesc{font-size:12px;color:var(--muted);}
+.price{font-size:18px;font-weight:700;}
+.price small{font-size:11px;font-weight:400;color:var(--muted);}
+.qty{display:flex;align-items:center;gap:6px;}
+.qty button{width:34px;height:34px;border-radius:50%;border:1.5px solid #c4bfaa;background:#fff;font-size:18px;line-height:1;color:var(--ink);}
+.qty button.plus{background:var(--gold);border-color:var(--gold);font-weight:700;}
+.qty span{min-width:20px;text-align:center;font-weight:700;}
+.soldout{color:#b05555;font-size:12px;font-weight:700;}
+.flow{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;font-size:13px;}
+.flow li{margin-left:1.2em;}
+footer{text-align:center;font-size:12px;color:var(--muted);margin:36px 0 0;}
+footer a{color:var(--muted);}
+.cartbar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(0,0,0,.06);}
+.cartbar-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:12px;}
+.sum{flex:1;font-size:12px;color:var(--muted);}
+.sum b{font-size:18px;color:var(--ink);}
+.checkout{padding:14px 22px;border:none;border-radius:11px;background:var(--ink);color:var(--gold);font-weight:700;font-size:15px;letter-spacing:.08em;}
+.checkout:disabled{background:#9a9a7a;color:#eee;cursor:not-allowed;}
+.notice{background:#fff8ee;border:1px solid #e8d8b0;color:#8a7040;font-size:12px;border-radius:10px;padding:10px 12px;margin-top:16px;}
+.error{color:#b05555;font-size:12px;}
+@media (max-width:480px){.hero h1{font-size:44px}.product{grid-template-columns:56px 1fr;}.bag{width:56px;height:56px;font-size:14px}.product .qtywrap{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}}
+</style>
+</head>
+<body>
+<section class="hero">
+  <h1>翔米</h1>
+  <div class="kana">SHOMAI</div>
+  <p>精米したてを、まっすぐ食卓へ。</p>
+</section>
+
+<main>
+  <div class="points">
+    <div class="point"><b>🌾</b>注文後に精米</div>
+    <div class="point"><b>🚚</b>最短当日発送</div>
+    <div class="point"><b>💳</b>カード・コンビニ払い</div>
+  </div>
+
+  <div id="demoNotice" class="notice" style="display:none;">デモモードで動いています（実際の決済は行われません）。</div>
+
+  <h2>お米を選ぶ</h2>
+  <div class="products" id="products"><p class="pdesc">読み込み中…</p></div>
+  <p class="pdesc" id="shipNote" style="margin-top:10px;"></p>
+
+  <h2>お届けまでの流れ</h2>
+  <ol class="flow">
+    <li>このページでお米を選んでご注文・お支払い</li>
+    <li>入金を確認したら、ご注文確認メールをお送りします</li>
+    <li>お店で精米し、ヤマト運輸または日本郵便でお届け</li>
+    <li>発送したらお問い合わせ番号をメールでお知らせします</li>
+  </ol>
+
+  <footer>
+    <a href="/legal">特定商取引法に基づく表記</a><br/>
+    © 翔米
+  </footer>
+</main>
+
+<div class="cartbar">
+  <div class="cartbar-inner">
+    <div class="sum" id="sum">お米を選んでください</div>
+    <button class="checkout" id="checkoutBtn" disabled onclick="checkout()">購入手続きへ</button>
+  </div>
+</div>
+
+<script>
+const yen = (n) => n.toLocaleString('ja-JP') + '円';
+let products = [];
+let shipping = {};
+let cart = {};
+try { cart = JSON.parse(localStorage.getItem('shomai-cart') || '{}'); } catch {}
+
+function saveCart() { try { localStorage.setItem('shomai-cart', JSON.stringify(cart)); } catch {} }
+
+function render() {
+  document.getElementById('products').innerHTML = products.map((p) => {
+    const q = cart[p.id] || 0;
+    const ctrl = p.stock <= 0 ? '<span class="soldout">売り切れ</span>' :
+      `<div class="qty"><button aria-label="減らす" onclick="add('${p.id}',-1)">−</button><span>${q}</span><button class="plus" aria-label="増やす" onclick="add('${p.id}',1)">＋</button></div>`;
+    return `<div class="product">
+      <div class="bag">${p.weightKg}kg</div>
+      <div><div class="pname">${p.name}</div><div class="pdesc">${p.description}</div></div>
+      <div class="qtywrap"><div class="price">${yen(p.price)}<small> 税込</small></div>${ctrl}</div>
+    </div>`;
+  }).join('');
+  updateSum();
+}
+
+function add(id, d) {
+  const p = products.find((x) => x.id === id);
+  const next = Math.max(0, Math.min(p.stock, (cart[id] || 0) + d));
+  if (next) cart[id] = next; else delete cart[id];
+  saveCart();
+  render();
+}
+
+let quoteSeq = 0;
+async function updateSum() {
+  const items = Object.entries(cart).map(([productId, quantity]) => ({ productId, quantity }));
+  const btn = document.getElementById('checkoutBtn');
+  const sum = document.getElementById('sum');
+  if (!items.length) { sum.textContent = 'お米を選んでください'; btn.disabled = true; return; }
+  const seq = ++quoteSeq;
+  const r = await fetch('/api/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) });
+  const q = await r.json();
+  if (seq !== quoteSeq) return;
+  if (!r.ok) { sum.innerHTML = `<span class="error">${q.error}</span>`; btn.disabled = true; return; }
+  sum.innerHTML = `合計 <b>${yen(q.total)}</b><br/>送料${q.shippingFee ? yen(q.shippingFee) : '無料'}（${q.boxCount}箱）込み`;
+  btn.disabled = false;
+}
+
+async function checkout() {
+  const btn = document.getElementById('checkoutBtn');
+  btn.disabled = true;
+  btn.textContent = '準備中…';
+  const items = Object.entries(cart).map(([productId, quantity]) => ({ productId, quantity }));
+  const r = await fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) });
+  const j = await r.json();
+  if (!r.ok) { alert(j.error); btn.disabled = false; btn.textContent = '購入手続きへ'; return; }
+  location.href = j.url;
+}
+
+fetch('/api/products').then((r) => r.json()).then((j) => {
+  products = j.products;
+  shipping = j.shipping;
+  for (const id of Object.keys(cart)) if (!products.some((p) => p.id === id && p.stock > 0)) delete cart[id];
+  document.getElementById('demoNotice').style.display = j.demo ? 'block' : 'none';
+  document.getElementById('shipNote').textContent =
+    `送料は全国一律 1箱${yen(shipping.feePerBox)}（1箱あたり最大${shipping.maxBoxKg}kg）` +
+    (shipping.freeShippingFrom ? `。${yen(shipping.freeShippingFrom)}以上のご注文で送料無料。` : '。');
+  render();
+});
+</script>
+</body>
+</html>
