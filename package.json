@@ -8,11 +8,14 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning src/server.js",
-    "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
+    "start": "node --disable-warning=ExperimentalWarning src/node.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/node.js",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
   },
   "dependencies": {
     "iconv-lite": "^0.6.3"
+  },
+  "devDependencies": {
+    "wrangler": "^4.148.0"
   }
 }
