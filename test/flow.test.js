@@ -7,7 +7,7 @@ import path from 'node:path';
 import iconv from 'iconv-lite';
 import { config } from '../src/config.js';
 import { getDb } from '../src/db.js';
-import { createServer } from '../src/server.js';
+import { createServer, setupNode } from '../src/node.js';
 import { tick } from '../src/jobs.js';
 import { listProducts } from '../src/orders.js';
 
@@ -19,6 +19,7 @@ const mails = () => {
 };
 const clearMails = () => rmSync(outbox, { recursive: true, force: true });
 
+await setupNode({ db: ':memory:' });
 const server = createServer();
 await new Promise((r) => server.listen(0, r));
 const base = `http://127.0.0.1:${server.address().port}`;
@@ -29,7 +30,7 @@ const post = (p, body, headers = {}) => fetch(base + p, { method: 'POST', header
 
 test('注文 → 入金 → 締め時刻に業者へ送り状データ → 伝票番号取込 → 夕方に発送通知', async () => {
   clearMails();
-  const stockBefore = Object.fromEntries(listProducts().map((p) => [p.id, p.stock]));
+  const stockBefore = Object.fromEntries((await listProducts()).map((p) => [p.id, p.stock]));
 
   // お客様：10kg×2 と 5kg×1 をカートに入れて購入手続き
   const items = [{ productId: 'shomai-10kg', quantity: 2 }, { productId: 'shomai-5kg', quantity: 1 }];
@@ -46,20 +47,20 @@ test('注文 → 入金 → 締め時刻に業者へ送り状データ → 伝�
   });
   assert.equal(paid.status, 303);
 
-  const db = getDb();
-  const order = db.prepare('SELECT * FROM orders WHERE session_id = ?').get(session);
+  const db = await getDb();
+  const order = (await db.get('SELECT * FROM orders WHERE session_id = ?', session));
   assert.equal(order.status, 'paid');
   assert.equal(order.zip, '460-0001');
   assert.equal(order.time_slot, '18-20時');
   assert.match(order.order_no, /^SHO-\d{8}-\d{4}$/);
-  const stockAfter = Object.fromEntries(listProducts().map((p) => [p.id, p.stock]));
+  const stockAfter = Object.fromEntries((await listProducts()).map((p) => [p.id, p.stock]));
   assert.equal(stockAfter['shomai-10kg'], stockBefore['shomai-10kg'] - 2);
   assert.match(mails().at(-1), /ご注文ありがとうございます/);
 
   // 同じ決済通知がもう一度来ても二重にならない
   await fetch(`${base}/demo/pay`, { method: 'POST', redirect: 'manual', body: new URLSearchParams({ session, name: 'x', email: 'x@example.com', phone: '0', zip: '0', address1: 'x' }) });
-  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders WHERE session_id = ?').get(session).n, 1);
-  assert.equal(listProducts().find((p) => p.id === 'shomai-10kg').stock, stockAfter['shomai-10kg']);
+  assert.equal((await db.get('SELECT COUNT(*) AS n FROM orders WHERE session_id = ?', session)).n, 1);
+  assert.equal((await listProducts()).find((p) => p.id === 'shomai-10kg').stock, stockAfter['shomai-10kg']);
 
   // 発送日の締め時刻：業者へCSV、店主へ梱包リスト
   clearMails();
@@ -76,7 +77,7 @@ test('注文 → 入金 → 締め時刻に業者へ送り状データ → 伝�
   const csvFile = readdirSync(outbox).find((f) => f.endsWith('.csv'));
   const csv = iconv.decode(readFileSync(path.join(outbox, csvFile)), 'Shift_JIS');
   assert.match(csv, new RegExp(`${order.order_no}-1,0,0,,${order.ship_date.replaceAll('-', '/')},,1820,`));
-  assert.equal(db.prepare('SELECT status FROM orders WHERE id = ?').get(order.id).status, 'sent_to_carrier');
+  assert.equal((await db.get('SELECT status FROM orders WHERE id = ?', order.id)).status, 'sent_to_carrier');
 
   // 管理画面（デモモードはパスワードなしで開ける）
   const admin = await (await fetch(`${base}/admin`)).text();
@@ -95,7 +96,7 @@ test('注文 → 入金 → 締め時刻に業者へ送り状データ → 伝�
   assert.match(shipped[0], /発送しました/);
   assert.match(shipped[0], /412345678901/);
   assert.match(shipped[0], /toi\.kuronekoyamato\.co\.jp/);
-  assert.equal(db.prepare('SELECT status FROM orders WHERE id = ?').get(order.id).status, 'shipped');
+  assert.equal((await db.get('SELECT status FROM orders WHERE id = ?', order.id)).status, 'shipped');
 });
 
 test('在庫より多くは買えない・不正な商品は弾く', async () => {
@@ -140,16 +141,16 @@ test('Stripe Webhook：コンビニ払いは入金待ち → 入金で確定', a
     assert.equal((await realFetch(`${base}/webhooks/stripe`, { method: 'POST', headers: { 'Stripe-Signature': 't=1,v1=00' }, body: '{}' })).status, 400);
 
     // 同じStripeアカウントの別システム（ポイント等）の決済は無視し、Stripeにも問い合わせない
-    const db = getDb();
-    const before = db.prepare('SELECT COUNT(*) AS n FROM orders').get().n;
+    const db = await getDb();
+    const before = (await db.get('SELECT COUNT(*) AS n FROM orders')).n;
     const foreign = await sendEvent('checkout.session.completed', 'cs_points_system', null);
     assert.equal(foreign.status, 200);
     assert.equal((await foreign.json()).ignored, true);
-    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM orders').get().n, before);
+    assert.equal((await db.get('SELECT COUNT(*) AS n FROM orders')).n, before);
 
     clearMails();
     assert.equal((await sendEvent('checkout.session.completed')).status, 200);
-    let order = db.prepare("SELECT * FROM orders WHERE session_id = 'cs_test_konbini'").get();
+    let order = (await db.get("SELECT * FROM orders WHERE session_id = 'cs_test_konbini'"));
     assert.equal(order.status, 'awaiting_payment');
     assert.equal(order.address1, '東京都千代田区千代田1-1');
     assert.equal(order.zip, '100-0001');
@@ -157,7 +158,7 @@ test('Stripe Webhook：コンビニ払いは入金待ち → 入金で確定', a
 
     paymentStatus = 'paid';
     assert.equal((await sendEvent('checkout.session.async_payment_succeeded')).status, 200);
-    order = db.prepare("SELECT * FROM orders WHERE session_id = 'cs_test_konbini'").get();
+    order = (await db.get("SELECT * FROM orders WHERE session_id = 'cs_test_konbini'"));
     assert.equal(order.status, 'paid');
     assert.ok(order.ship_date);
   } finally {

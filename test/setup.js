@@ -1,10 +1,8 @@
-// テスト共通：.env を読まず、一時ディレクトリ＋メモリDB・デモモードで動かす
+// テスト共通：一時ディレクトリ・デモモードの設定（DB はメモリ上）。src より先に読み込むこと。
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-process.env.SHOMAI_SKIP_DOTENV = '1';
-process.env.SHOMAI_DB = ':memory:';
 process.env.DATA_DIR = mkdtempSync(path.join(tmpdir(), 'shomai-test-'));
 process.env.STRIPE_SECRET_KEY = '';
 process.env.RESEND_API_KEY = '';

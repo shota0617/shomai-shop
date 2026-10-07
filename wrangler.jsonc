@@ -1,0 +1,27 @@
+// 翔米ショップの Cloudflare Workers 設定。
+// らいすぴあポイントシステムとは Worker・データベース（D1）・ドメインをすべて別にしている（共有するのは Cloudflare アカウントだけ）。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shomai-shop",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // 商品ページなど public/ のファイルは Cloudflare が直接配信する
+  "assets": { "directory": "./public" },
+
+  // 翔米専用のデータベース。初回デプロイ時に Cloudflare が「shomai-shop」という名前で自動作成する
+  // （ID を書く必要はない。表は最初のアクセス時に自動で作られる）
+  "d1_databases": [
+    { "binding": "DB", "database_name": "shomai-shop" }
+  ],
+
+  // 5分ごとに自動処理（締め時刻の業者送信・夕方の発送通知）を確認する
+  "triggers": { "crons": ["*/5 * * * *"] },
+
+  // 設定値（BASE_URL・店の住所・業者のメールなど）と秘密の値（Stripe のキーなど）は、
+  // ダッシュボードの「設定 → 変数とシークレット」で登録する。デプロイしても消えないようにする。
+  "keep_vars": true,
+
+  "observability": { "enabled": true }
+}
