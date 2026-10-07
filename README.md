@@ -43,10 +43,7 @@ Stripe を設定していないあいだは **デモモード** で動きます�
 翔米は Cloudflare Workers で動きます。ポイントシステムと同じ Cloudflare アカウントの中で、**別の Worker・別のデータベース・別のドメイン** として置きます。
 費用は、小さなお店の注文数なら無料プランの範囲に収まります。
 
-1. **データベースを作る**
-   - Cloudflare ダッシュボード →「ストレージとデータベース」→「D1」→「作成」で、名前を `shomai-shop` にします。
-   - 表示された **Database ID** を `wrangler.jsonc` の `database_id` に書きます。
-   - 表は最初のアクセス時に自動で作られます。
+1. **データベース**：作業は不要です。初回のデプロイ時に、Cloudflare が翔米専用の D1「`shomai-shop`」を自動で作ります。表も最初のアクセス時に自動で作られます。
 2. **Worker を作る**
    - 「Workers & Pages」→「作成」→「リポジトリをインポート」で、GitHub の `shomai-shop` を選びます。
    - デプロイコマンドは `npx wrangler deploy` のままにします。
