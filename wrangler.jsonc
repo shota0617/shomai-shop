@@ -10,10 +10,9 @@
   // 商品ページなど public/ のファイルは Cloudflare が直接配信する
   "assets": { "directory": "./public" },
 
-  // 翔米専用のデータベース。初回デプロイ時に Cloudflare が「shomai-shop」という名前で自動作成する
-  // （ID を書く必要はない。表は最初のアクセス時に自動で作られる）
+  // 翔米専用のデータベース（D1「shomai-shop」・アジア太平洋）。ポイントシステムなど他のデータベースとは別。
   "d1_databases": [
-    { "binding": "DB", "database_name": "shomai-shop" }
+    { "binding": "DB", "database_name": "shomai-shop", "database_id": "24cdcb60-7369-4b94-bd98-9d51d4ecec28" }
   ],
 
   // 5分ごとに自動処理（締め時刻の業者送信・夕方の発送通知）を確認する
